@@ -1,31 +1,44 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 )
 
-func HashPassword(password string) (string, error) {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-    return string(bytes), err
-}
-
-func CheckPasswordHash(password, hash string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-    return err == nil
-}
-
 func main() {
-    password := "secret"
-		// hash := "$2a$14$yPHbzBrBrnS05rywflpndO1HomfZxnimuyfS0Vk3cI9gaB.IttA3K"
-		// hash := "$2a$14$TYj36PkEe7TmdB7lctTvQOJW.kqs0i1d57EJZqQtMc/K8TMUIc4sG"
-		hash := "$2a$14$cmBRI6wbhTGlh5hKyhf63Otp8xSiRuDRKqEqPzRJiZGrDuKS.IcjS"
-    // hash, _ := HashPassword(password) // ignore error for the sake of simplicity
+	config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("ap-southeast-1"),
+		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
+			Value: aws.Credentials{
+				AccessKeyID:     "",
+				SecretAccessKey: "",
+				SessionToken:    "",
+				Source:          "",
+			},
+		}))
+	if err != nil {
+		panic("configuration error, " + err.Error())
+	}
 
-    fmt.Println("Password:", password)
-    fmt.Println("Hash:    ", hash)
+	client := sns.NewFromConfig(config)
 
-    match := CheckPasswordHash(password, hash)
-    fmt.Println("Match:   ", match)
+	params := &sns.PublishInput{
+		Message:     aws.String("this is test sms"),
+		PhoneNumber: aws.String("+66yournumber"),
+	}
+	resp, err := client.Publish(context.TODO(), params)
+
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		fmt.Println(err.Error())
+		return
+	}
+
+	// Pretty-print the response data.
+	fmt.Println(resp)
 }
